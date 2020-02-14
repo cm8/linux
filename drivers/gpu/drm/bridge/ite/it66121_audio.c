@@ -5,6 +5,7 @@
  * based on beagleboard it66121 i2c encoder driver
  * Copyright (C) 2017 Baozhu Zuo <zuobaozhu@gmail.com>
  */
+#include <drm/drm_print.h>
 #include <sound/asoundef.h>
 #include <sound/hdmi-codec.h>
 

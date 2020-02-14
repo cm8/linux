@@ -13,6 +13,7 @@
 #include <linux/regmap.h>
 #include <linux/regulator/consumer.h>
 
+#include <drm/drm_bridge.h>
 #include <drm/drm_crtc_helper.h>
 
 struct it66121 {

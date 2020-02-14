@@ -15,12 +15,12 @@
 #include <linux/regulator/consumer.h>
 #include <linux/string.h>
 
-#include <drm/drmP.h>
 #include <drm/drm_atomic_helper.h>
-#include <drm/drm_atomic.h>
-#include <drm/drm_crtc_helper.h>
+#include <drm/drm_bridge.h>
+#include <drm/drm_drv.h>
 #include <drm/drm_edid.h>
-#include <drm/drm_of.h>
+#include <drm/drm_print.h>
+#include <drm/drm_probe_helper.h>
 
 #include <media/cec.h>
 
@@ -344,8 +344,8 @@ int it66121_reg_read(struct it66121 *priv, int reg)
 		goto out;
 
 	ret = regmap_read(priv->regmap, reg, &val);
-if (reg < 0x10 || reg >= 0x20)
-printk("it66121: read 0x%x from 0x%x, ret %d\n", val, reg, ret);
+	if (reg < 0x10 || reg >= 0x20)
+		printk("it66121: read 0x%x from 0x%x, ret %d\n", val, reg, ret);
 	if (ret < 0)
 		goto out;
 	ret = val;
@@ -365,8 +365,8 @@ int it66121_reg_write(struct it66121 *priv, int reg, u8 val)
 		goto out;
 
 	ret = regmap_write(priv->regmap, reg, val);
-if (reg < 0x10 || reg >= 0x20)
-printk("it66121: wrote 0x%x to 0x%x, ret %d\n", val, reg, ret);
+	if (reg < 0x10 || reg >= 0x20)
+		printk("it66121: wrote 0x%x to 0x%x, ret %d\n", val, reg, ret);
 out:
 	mutex_unlock(&priv->bank_mutex);
 	return ret;
@@ -384,8 +384,8 @@ int it66121_reg_update_bits(struct it66121 *priv, unsigned int reg,
 		goto out;
 
 	ret = regmap_update_bits(priv->regmap, reg, mask, val);
-if (reg < 0x10 || reg >= 0x20)
-printk("it66121: update 0x%x/0x%x in 0x%x, ret %d\n", val, mask, reg, ret);
+	if (reg < 0x10 || reg >= 0x20)
+		printk("it66121: update 0x%x/0x%x in 0x%x, ret %d\n", val, mask, reg, ret);
 out:
 	mutex_unlock(&priv->bank_mutex);
 	return ret;
@@ -409,8 +409,8 @@ int it66121_reg_bulk_write(struct it66121 *priv, unsigned int reg,
 		goto out;
 
 	ret = regmap_bulk_write(priv->regmap, reg, val, val_count);
-if (reg < 0x10 || reg >= 0x20)
-printk("it66121: writing to %d registers at 0x%x, ret %d\n", val_count, reg, ret);
+	if (reg < 0x10 || reg >= 0x20)
+		printk("it66121: writing to %d registers at 0x%x, ret %d\n", val_count, reg, ret);
 out:
 	mutex_unlock(&priv->bank_mutex);
 	return ret;
@@ -639,8 +639,8 @@ static int it66121_connector_get_modes(struct drm_connector *connector)
 	return ret;
 }
 
-static int it66121_connector_mode_valid(struct drm_connector *connector,
-										struct drm_display_mode *mode)
+static enum drm_mode_status it66121_connector_mode_valid(struct drm_connector *connector,
+							 struct drm_display_mode *mode)
 {
 	//return drm_match_cea_mode(mode) == 0 ? MODE_BAD : MODE_OK;
 	return MODE_OK;
@@ -858,7 +858,7 @@ static void it66121_afe_setup(struct it66121 *priv, bool high_level)
  * 8. Clear the AVMUTE by regC1[0] = '1' and regC6 = 0x03.
  */
 static void it66121_enable_video_output(struct it66121 *priv,
-					struct drm_display_mode *mode)
+					const struct drm_display_mode *mode)
 {
 	u8 is_high_clk = 0;
 	u8 pixelrep = 0;
@@ -935,7 +935,7 @@ static void it66121_enable_video_output(struct it66121 *priv,
 }
 
 static int it66121_set_mode_dvi(struct it66121 *priv,
-				struct drm_display_mode *adj)
+				const struct drm_display_mode *adj)
 {
 	int ret;
 
@@ -955,7 +955,7 @@ static int it66121_set_mode_dvi(struct it66121 *priv,
 }
 
 static int it66121_set_mode_hdmi(struct it66121 *priv,
-				 struct drm_display_mode *adj)
+				 const struct drm_display_mode *adj)
 {
 	struct hdmi_avi_infoframe frame;
 	u8 buf[HDMI_INFOFRAME_SIZE(AVI)];
@@ -1008,8 +1008,8 @@ static int it66121_set_mode_hdmi(struct it66121 *priv,
 }
 
 static void it66121_bridge_mode_set(struct drm_bridge *bridge,
-				    struct drm_display_mode *mode,
-				    struct drm_display_mode *adj)
+				    const struct drm_display_mode *mode,
+				    const struct drm_display_mode *adj)
 {
 	struct it66121 *priv = bridge_to_it66121(bridge);
 	int ret;
@@ -1028,7 +1028,7 @@ static void it66121_bridge_disable(struct drm_bridge *bridge)
 {
 	struct it66121 *priv = bridge_to_it66121(bridge);
 
-printk("%s: disabling bridge\n", __func__);
+	printk("%s: disabling bridge\n", __func__);
 	/* disable video output */
 	it66121_reg_update_bits(priv, IT66121_SW_RST, IT66121_SW_RST_SOFT_VID, IT66121_SW_RST_SOFT_VID);
 
@@ -1048,14 +1048,14 @@ printk("%s: disabling bridge\n", __func__);
 	it66121_afe_disable(priv);
 
 	pm_runtime_put(&priv->i2c->dev);
-printk("%s: disabled bridge\n", __func__);
+	printk("%s: disabled bridge\n", __func__);
 }
 
 static void it66121_bridge_enable(struct drm_bridge *bridge)
 {
 	struct it66121 *priv = bridge_to_it66121(bridge);
 
-printk("%s: enabling bridge\n", __func__);
+	printk("%s: enabling bridge\n", __func__);
 	if (WARN_ON(pm_runtime_get_sync(&priv->i2c->dev) < 0))
 		return;
 
@@ -1066,7 +1066,7 @@ printk("%s: enabling bridge\n", __func__);
 					IT66121_SYS_STATUS1_GATE_TXCLK, 0);
 
 	if (priv->sink_is_hdmi) {
-printk("%s: hdmi mode\n", __func__);
+		printk("%s: hdmi mode\n", __func__);
 		it66121_reg_write(priv, IT66121_AVI_INFOFRM_CTRL,
 				  IT66121_INFOFRM_ENABLE_PACKET |
 				  IT66121_INFOFRM_REPEAT_PACKET);
@@ -1082,7 +1082,7 @@ printk("%s: hdmi mode\n", __func__);
 
 	it66121_reg_update_bits(priv, IT66121_SW_RST,
 				IT66121_SW_RST_SOFT_VID, 0);
-printk("%s: enabled bridge\n", __func__);
+	printk("%s: enabled bridge\n", __func__);
 }
 
 static int it66121_bridge_attach(struct drm_bridge *bridge)
@@ -1132,7 +1132,7 @@ static void it66121_hpd_work(struct work_struct *work)
 	unsigned int val;
 	int ret;
 
-printk("%s: start\n", __func__);
+	printk("%s: start\n", __func__);
 	if (WARN_ON(pm_runtime_get_sync(&priv->i2c->dev) < 0))
 		return;
 
@@ -1145,7 +1145,7 @@ printk("%s: start\n", __func__);
 		status = connector_status_disconnected;
 
 	if (priv->connector.status != status) {
-printk("%s: send event %d -> %d\n", __func__, priv->connector.status, status);
+		printk("%s: send event %d -> %d\n", __func__, priv->connector.status, status);
 		priv->connector.status = status;
 		if (status == connector_status_disconnected)
 			cec_phys_addr_invalidate(priv->cec_adap);
@@ -1153,7 +1153,7 @@ printk("%s: send event %d -> %d\n", __func__, priv->connector.status, status);
 	}
 
 	pm_runtime_put(&priv->i2c->dev);
-printk("%s: end\n", __func__);
+	printk("%s: end\n", __func__);
 }
 
 struct it66121_int_clr {
@@ -1216,7 +1216,7 @@ static irqreturn_t it66121_thread_interrupt(int irq, void *data)
 	u8 intdata2;
 	u8 intdata3;
 
-printk("%s: begin of interrupt\n", __func__);
+	printk("%s: begin of interrupt\n", __func__);
 	if (WARN_ON(pm_runtime_get_sync(&priv->i2c->dev) < 0))
 		return IRQ_NONE;
 
@@ -1249,7 +1249,7 @@ printk("%s: begin of interrupt\n", __func__);
 	}
 
 	if (intdata0 & IT66121_INT_STAT0_DDC_FIFO_ERR) {
-printk("%s: handling ddc_fifo_err\n", __func__);
+		printk("%s: handling ddc_fifo_err\n", __func__);
 		//dev_err(&client->dev, "DDC FIFO Error.\n");
 		/*clear ddc fifo*/
 		it66121_reg_write(priv, IT66121_DDC_MASTER, IT66121_DDC_MASTER_DDC | IT66121_DDC_MASTER_HOST);
@@ -1259,14 +1259,14 @@ printk("%s: handling ddc_fifo_err\n", __func__);
 	}
 
 	if (intdata0 & IT66121_INT_STAT0_DDC_BUS_HANG) {
-printk("%s: handling ddc_bus_hang\n", __func__);
+		printk("%s: handling ddc_bus_hang\n", __func__);
 		//dev_err(&client->dev, "DDC BUS HANG.\n");
 		/*abort ddc*/
 		it66121_abort_DDC(priv);
 	}
 
 	if (intdata0 & IT66121_INT_STAT0_AUDIO_OVERFLOW) {
-printk("%s: handling audio overflow\n", __func__);
+		printk("%s: handling audio overflow\n", __func__);
 		//dev_err(&client->dev, "AUDIO FIFO OVERFLOW.\n");
 		it66121_reg_update_bits(priv, IT66121_SW_RST, IT66121_SW_RST_AUDIO_FIFO | IT66121_SW_RST_SOFT_AUD,
 					  IT66121_SW_RST_AUDIO_FIFO | IT66121_SW_RST_SOFT_AUD);
@@ -1275,7 +1275,7 @@ printk("%s: handling audio overflow\n", __func__);
 	}
 
 	if (intdata2 & IT66121_INT_STAT2_VID_STABLE) {
-printk("%s: handling vid_stable\n", __func__);
+		printk("%s: handling vid_stable\n", __func__);
 		//dev_info(&client->dev, "it66121 interrupt video enabled\n");
 		sysstat = it66121_reg_read(priv, IT66121_SYS_STATUS0);
 		if (sysstat & IT66121_SYS_STATUS0_TX_VID_STABLE) {
@@ -1284,11 +1284,10 @@ printk("%s: handling vid_stable\n", __func__);
 		}
 	}
 
-	if ((intdata0 & IT66121_INT_STAT0_HPD) && priv->bridge.dev)
-{
-printk("%s: handling hotplug\n", __func__);
+	if ((intdata0 & IT66121_INT_STAT0_HPD) && priv->bridge.dev) {
+		printk("%s: handling hotplug\n", __func__);
 		schedule_work(&priv->hpd_work);
-}
+	}
 
 	if (intcore & IT66121_INT_CORE_STAT_CEC)
 		it66121_cec_irq_process(priv);
@@ -1299,7 +1298,7 @@ printk("%s: handling hotplug\n", __func__);
 				IT66121_SYS_STATUS0_INTACTDONE);
 
 	pm_runtime_put(&priv->i2c->dev);
-printk("%s: interrupt end\n", __func__);
+	printk("%s: interrupt end\n", __func__);
 	return IRQ_HANDLED;
 }
 

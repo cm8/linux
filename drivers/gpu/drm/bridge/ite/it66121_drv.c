@@ -1478,11 +1478,11 @@ static int it66121_cec_regmap_init(struct it66121 *priv)
 	if (ret < 0)
 		return ret;
 
-	/* now add the secondary i2c device */
-	priv->i2c_cec = i2c_new_secondary_device(priv->i2c, "cec",
+	/* now add the ancillary i2c device */
+	priv->i2c_cec = i2c_new_ancillary_device(priv->i2c, "cec",
 						 priv->cec_addr);
-	if (!priv->i2c_cec)
-		return -EINVAL;
+	if (IS_ERR(priv->i2c_cec))
+		return PTR_ERR(priv->i2c_cec);
 
 	ret = devm_add_action_or_reset(&priv->i2c->dev,
 				       it66121_delete_cec_i2c, priv);

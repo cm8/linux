@@ -748,7 +748,8 @@ static void i915_audio_component_get_power(struct device *kdev)
 
 static void i915_audio_component_put_power(struct device *kdev)
 {
-	intel_display_power_put(kdev_to_i915(kdev), POWER_DOMAIN_AUDIO);
+	intel_display_power_put_unchecked(kdev_to_i915(kdev),
+					  POWER_DOMAIN_AUDIO);
 }
 
 static void i915_audio_component_codec_wake_override(struct device *kdev,
@@ -983,7 +984,9 @@ void i915_audio_component_init(struct drm_i915_private *dev_priv)
 {
 	int ret;
 
-	ret = component_add(dev_priv->drm.dev, &i915_audio_component_bind_ops);
+	ret = component_add_typed(dev_priv->drm.dev,
+				  &i915_audio_component_bind_ops,
+				  I915_COMPONENT_AUDIO);
 	if (ret < 0) {
 		DRM_ERROR("failed to add audio component (%d)\n", ret);
 		/* continue with reduced functionality */
